@@ -10,24 +10,20 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // 🔐 FIREBASE ADMIN SETUP
-const admin = require("firebase-admin");
-
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
 const db = admin.firestore();
 
 // 🔐 RAZORPAY SETUP
 const razorpay = new Razorpay({
-  key_id: process.env.KEY_ID || "rzp_test_SB9zOunZP02yLl",
-  key_secret: process.env.KEY_SECRET || "Twl9Rtkdy9wIlI2s4qA6awaz"
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
 // ✅ HEALTH CHECK
@@ -41,7 +37,7 @@ app.post("/create-order", async (req, res) => {
     const { amount, courseId } = req.body;
 
     const options = {
-      amount: amount * 100, // ✅ convert to paise
+      amount: amount * 100, // convert to paise
       currency: "INR",
       receipt: "receipt_" + courseId + "_" + Date.now()
     };
@@ -70,7 +66,7 @@ app.post("/verify-payment", async (req, res) => {
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.KEY_SECRET || "Twl9Rtkdy9wIlI2s4qA6awaz")
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(body)
       .digest("hex");
 
@@ -78,7 +74,7 @@ app.post("/verify-payment", async (req, res) => {
       return res.status(400).json({ status: "failure" });
     }
 
-    // 🔥 UPDATE FIRESTORE (SECURE)
+    // 🔥 UPDATE FIRESTORE
     await db.collection("users")
       .doc(userId)
       .collection("courses")
