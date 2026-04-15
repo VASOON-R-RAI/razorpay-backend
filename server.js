@@ -10,7 +10,13 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // 🔐 FIREBASE ADMIN SETUP
-const serviceAccount = require("./firebase-key.json");
+const admin = require("firebase-admin");
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
